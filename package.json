@@ -1,6 +1,6 @@
 {
   "name": "climmander",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A CLI that uses commander.js for more advanced performance",
   "bin": {
     "order": "./cli.js"
