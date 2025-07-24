@@ -223,10 +223,14 @@ program
         } else {
           process.stdout.write('Game Over! Final Score: ' + playerScore + ' - ' + botScore + '\n');
         }
-        // Clear the terminal after showing the result
-        setTimeout(() => {
-          process.stdout.write('\x1Bc');
-        }, 3000);
+        // Ask if user wants to clear the terminal
+        const promptRl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        promptRl.question('Do you want to clear the terminal? (y/N): ', (answer) => {
+          if (answer.trim().toLowerCase() === 'y' || answer.trim().toLowerCase() === 'yes') {
+            process.stdout.write('\x1Bc');
+          }
+          promptRl.close();
+        });
         return;
       }
       update();
