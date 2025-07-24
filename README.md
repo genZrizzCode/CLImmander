@@ -14,6 +14,17 @@ Or use directly with npx:
 npx climmander <command>
 ```
 
+### To run this right off the bat:
+
+In your terminal, run:
+
+```sh
+   curl -fsSL https://raw.githubusercontent.com/genZrizzCode/CLImmander/main/run.sh | bash -s -- <command>
+```
+
+> ***WARNING:**
+> If you do this method, pressing `^C` will end the whole process (which means you have to run that super long line of code again), and interactive commands (`bash -s -- ping <difficulty>`) will not work.
+
 ## Usage
 
 All commands are run using the `order` CLI:

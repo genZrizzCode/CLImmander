@@ -126,6 +126,11 @@ program
       output: process.stdout,
       terminal: true
     });
+    if (!process.stdin.isTTY) {
+      console.log('Pong requires an interactive terminal (TTY). Please run this command directly in your terminal.');
+      rl.close();
+      return;
+    }
     process.stdin.setRawMode(true);
     process.stdin.resume();
     process.stdout.write('\x1Bc'); // Clear screen
