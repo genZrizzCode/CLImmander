@@ -7,10 +7,16 @@ import { create, all as mathAll } from 'mathjs';
 const math = create(mathAll);
 const program = new Command();
 
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+
+const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url)));
+
 program
   .name('order')
   .description('Order CLI for various commands')
-  .version('1.0.0');
+  .version(pkg.version);
 
 program
   .command('weather [city]')
@@ -432,14 +438,187 @@ program
       const shell = process.env.SHELL || process.env.ComSpec || 'unknown';
       const term = process.env.TERM || 'unknown';
       const nodeVersion = process.version;
+      const osType = os.type();
+      const osRelease = os.release();
       console.log('--- My Device & Terminal Info ---');
       console.log(`User:        ${userInfo.username}`);
       console.log(`OS:          ${platform} (${arch})`);
-      console.log(`CPU:         ${cpus[0].model} (${cpus.length} cores)`);
-      console.log(`Memory:      ${(totalMem / 1024 / 1024 / 1024).toFixed(2)} GB total, ${(freeMem / 1024 / 1024 / 1024).toFixed(2)} GB free`);
-      console.log(`Shell:       ${shell}`);
-      console.log(`Terminal:    ${term}`);
-      console.log(`Node.js:     ${nodeVersion}`);
+      console.log(`OS Type:     ${osType}`);
+      console.log(`OS Release:  ${osRelease}`);
+      // Try to get device model for macOS, Windows, and Linux
+      const macModelMap = {
+        // MacBook
+        'MacBook8,1': 'MacBook (Retina, 12-inch, Early 2015)',
+        'MacBook9,1': 'MacBook (Retina, 12-inch, Early 2016)',
+        'MacBook10,1': 'MacBook (Retina, 12-inch, 2017)',
+        // MacBook Air
+        'MacBookAir7,2': 'MacBook Air (13-inch, Early 2015/2017)',
+        'MacBookAir8,1': 'MacBook Air (Retina, 13-inch, 2018)',
+        'MacBookAir8,2': 'MacBook Air (Retina, 13-inch, 2019)',
+        'MacBookAir9,1': 'MacBook Air (Retina, 13-inch, 2020)',
+        'MacBookAir10,1': 'MacBook Air (M1, 2020)',
+        'MacBookAir10,2': 'MacBook Air (M2, 2022)',
+        'MacBookAir15,3': 'MacBook Air (15-inch, M2, 2023)',
+        // MacBook Pro
+        'MacBookPro13,1': 'MacBook Pro (13-inch, 2016, Two Thunderbolt 3 ports)',
+        'MacBookPro13,2': 'MacBook Pro (13-inch, 2016, Four Thunderbolt 3 ports)',
+        'MacBookPro13,3': 'MacBook Pro (15-inch, 2016)',
+        'MacBookPro14,1': 'MacBook Pro (13-inch, 2017, Two Thunderbolt 3 ports)',
+        'MacBookPro14,2': 'MacBook Pro (13-inch, 2017, Four Thunderbolt 3 ports)',
+        'MacBookPro14,3': 'MacBook Pro (15-inch, 2017)',
+        'MacBookPro15,1': 'MacBook Pro (15-inch, 2018/2019)',
+        'MacBookPro15,2': 'MacBook Pro (13-inch, 2018/2019, Four Thunderbolt 3 ports)',
+        'MacBookPro15,4': 'MacBook Pro (13-inch, 2019, Two Thunderbolt 3 ports)',
+        'MacBookPro16,1': 'MacBook Pro (16-inch, 2019)',
+        'MacBookPro16,2': 'MacBook Pro (13-inch, 2020, Four Thunderbolt 3 ports)',
+        'MacBookPro16,3': 'MacBook Pro (13-inch, 2020, Two Thunderbolt 3 ports)',
+        'MacBookPro16,4': 'MacBook Pro (16-inch, 2019, AMD Radeon Pro 5600M)',
+        'MacBookPro17,1': 'MacBook Pro (13-inch, M1, 2020)',
+        'MacBookPro18,1': 'MacBook Pro (16-inch, 2021, M1 Pro/Max)',
+        'MacBookPro18,2': 'MacBook Pro (16-inch, 2021, M1 Pro/Max)',
+        'MacBookPro18,3': 'MacBook Pro (14-inch, 2021, M1 Pro/Max)',
+        'MacBookPro18,4': 'MacBook Pro (14-inch, 2021, M1 Pro/Max)',
+        'MacBookPro20,1': 'MacBook Pro (14-inch, M2 Pro/Max, 2023)',
+        'MacBookPro20,2': 'MacBook Pro (16-inch, M2 Pro/Max, 2023)',
+        // iMac
+        'iMac14,2': 'iMac (27-inch, Late 2013)',
+        'iMac15,1': 'iMac (Retina 5K, 27-inch, Late 2014/Mid 2015)',
+        'iMac16,1': 'iMac (21.5-inch, Late 2015)',
+        'iMac16,2': 'iMac (Retina 4K, 21.5-inch, Late 2015)',
+        'iMac17,1': 'iMac (Retina 5K, 27-inch, Late 2015)',
+        'iMac18,1': 'iMac (21.5-inch, 2017)',
+        'iMac18,2': 'iMac (Retina 4K, 21.5-inch, 2017)',
+        'iMac18,3': 'iMac (Retina 5K, 27-inch, 2017)',
+        'iMac19,1': 'iMac (Retina 5K, 27-inch, 2019)',
+        'iMac19,2': 'iMac (Retina 4K, 21.5-inch, 2019)',
+        'iMac20,1': 'iMac (Retina 5K, 27-inch, 2020)',
+        'iMac20,2': 'iMac (Retina 5K, 27-inch, 2020)',
+        'iMac21,1': 'iMac (24-inch, M1, 2021)',
+        'iMac21,2': 'iMac (24-inch, M1, 2021)',
+        // Mac mini
+        'Macmini7,1': 'Mac mini (Late 2014)',
+        'Macmini8,1': 'Mac mini (2018)',
+        'Macmini9,1': 'Mac mini (M1, 2020)',
+        'Mac14,3': 'Mac mini (M2, 2023)',
+        // Mac Studio
+        'Mac13,1': 'Mac Studio (M1 Max, 2022)',
+        'Mac13,2': 'Mac Studio (M1 Ultra, 2022)',
+        // Mac Pro
+        'MacPro6,1': 'Mac Pro (Late 2013)',
+        'MacPro7,1': 'Mac Pro (2019)',
+        // Xserve
+        'Xserve3,1': 'Xserve (Early 2009)',
+        // Add more as needed
+      };
+      const pcBrandMap = {
+        'Dell': 'Dell PC',
+        'LG': 'LG PC',
+        'ASUS': 'ASUS PC',
+        'Samsung': 'Samsung PC',
+        'MSI': 'MSI PC',
+      };
+      if (platform === 'darwin') {
+        import('child_process').then(cp => {
+          // Get macOS version
+          cp.exec('sw_vers -productVersion', (verr, vstdout) => {
+            let macosVersion = vstdout ? vstdout.toString().trim() : '';
+            let marketingName = '';
+            // Map major versions to marketing names
+            const macosNames = {
+              '10.15': 'Catalina',
+              '11': 'Big Sur',
+              '12': 'Monterey',
+              '13': 'Ventura',
+              '14': 'Sonoma',
+              '15': 'Sequoia',
+              '26': 'Tahoe', // Upcoming macOS Tahoe 26
+            };
+            let major = macosVersion.split('.').slice(0,2).join('.');
+            if (major.startsWith('10.15')) marketingName = 'Catalina';
+            else if (major.startsWith('11')) marketingName = 'Big Sur';
+            else if (major.startsWith('12')) marketingName = 'Monterey';
+            else if (major.startsWith('13')) marketingName = 'Ventura';
+            else if (major.startsWith('14')) marketingName = 'Sonoma';
+            else if (major.startsWith('15')) marketingName = 'Sequoia';
+            else if (major.startsWith('26')) marketingName = 'Tahoe';
+            else marketingName = '';
+            let macosString = macosVersion;
+            if (marketingName) macosString = `macOS ${marketingName} ${macosVersion}`;
+            // Get model
+            cp.exec('system_profiler SPHardwareDataType | grep "Model Identifier"', (err, stdout) => {
+              if (!err && stdout) {
+                const modelId = stdout.toString().trim().split(':').pop().trim();
+                const marketing = macModelMap[modelId] || 'Unknown Mac model';
+                console.log(`Device:      ${marketing} (${modelId})`);
+              } else {
+                console.log('Device:      (unknown Mac model)');
+              }
+              // Show macOS version
+              console.log(`macOS:       ${macosString}`);
+              printRest();
+            });
+          });
+        });
+      } else if (platform === 'win32') {
+        import('child_process').then(cp => {
+          cp.exec('wmic computersystem get manufacturer,model', (err, stdout) => {
+            if (!err && stdout) {
+              const lines = stdout.trim().split('\n');
+              if (lines.length > 1) {
+                const info = lines[1].trim().replace(/\s+/g, ' ');
+                let brand = Object.keys(pcBrandMap).find(b => info.toLowerCase().includes(b.toLowerCase()));
+                if (brand) {
+                  let marketing = pcBrandMap[brand];
+                  console.log(`Device:      ${marketing} (${info})`);
+                } else {
+                  console.log(`Device:      ${info}`);
+                }
+              } else {
+                console.log('Device:      (unknown Windows model)');
+              }
+            } else {
+              console.log('Device:      (unknown Windows model)');
+            }
+            printRest();
+          });
+        });
+      } else if (platform === 'linux') {
+        import('child_process').then(cp => {
+          cp.exec('cat /sys/class/dmi/id/sys_vendor 2>/dev/null; cat /sys/class/dmi/id/product_name 2>/dev/null', (err, stdout) => {
+            if (!err && stdout) {
+              const lines = stdout.trim().split('\n');
+              let vendor = lines[0] || '';
+              let model = lines[1] || '';
+              let device = (vendor + ' ' + model).trim();
+              if (device) {
+                const brands = Object.keys(pcBrandMap);
+                let found = brands.find(b => device.toLowerCase().includes(b.toLowerCase()));
+                if (found) {
+                  let marketing = pcBrandMap[found];
+                  console.log(`Device:      ${marketing} (${device})`);
+                } else {
+                  console.log(`Device:      ${device}`);
+                }
+              } else {
+                console.log('Device:      (unknown Linux model)');
+              }
+            } else {
+              console.log('Device:      (unknown Linux model)');
+            }
+            printRest();
+          });
+        });
+      } else {
+        console.log('Device:      (detection not supported on this OS)');
+        printRest();
+      }
+      function printRest() {
+        console.log(`CPU:         ${cpus[0].model} (${cpus.length} cores)`);
+        console.log(`Memory:      ${(totalMem / 1024 / 1024 / 1024).toFixed(2)} GB total, ${(freeMem / 1024 / 1024 / 1024).toFixed(2)} GB free`);
+        console.log(`Shell:       ${shell}`);
+        console.log(`Terminal:    ${term}`);
+        console.log(`Node.js:     ${nodeVersion}`);
+      }
     });
   });
 
