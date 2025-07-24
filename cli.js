@@ -112,9 +112,13 @@ program
   });
 
 program
-  .command('pong')
-  .description('Play a simple Pong game in your terminal')
-  .action(async () => {
+  .command('pong [difficulty]')
+  .description('Play a simple Pong game in your terminal (difficulty: easy, medium, hard)')
+  .action(async (difficulty) => {
+    if (!difficulty) {
+      console.log('Usage: order pong <difficulty>\nDifficulty must be one of: easy, medium, hard');
+      process.exit(1);
+    }
     // Basic terminal Pong using Node.js built-ins
     const readline = await import('readline');
     const rl = readline.createInterface({
@@ -140,14 +144,36 @@ program
     let running = true;
     let botPaddleY = Math.floor(height / 2);
 
+    // Difficulty settings
+    let botSpeed = 1;
+    let botMistakeChance = 0;
+    let ballDelay = 100;
+    if (difficulty === 'easy') {
+      botSpeed = 1.3;
+      botMistakeChance = 0.5;
+      ballDelay = 140;
+    } else if (difficulty === 'medium') {
+      botSpeed = 1;
+      botMistakeChance = 0.25;
+      ballDelay = 100;
+    } else if (difficulty === 'hard') {
+      botSpeed = 1.5;
+      botMistakeChance = 0.125;
+      ballDelay = 80;
+    } else if (difficulty === 'impossible') {
+      botSpeed = 1.5;
+      botMistakeChance = 0;
+      ballDelay = 70;
+    }
+
     function draw() {
       let out = '';
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           if (x === 1 && y >= paddleY && y < paddleY + paddleHeight) {
-            out += '|'; // Player Paddle
+            out += '█'; // Player Paddle
           } else if (x === width - 2 && y >= botPaddleY && y < botPaddleY + paddleHeight) {
-            out += '|'; // Bot Paddle
+            out += '█'; // Bot Paddle
           } else if (x === ballX && y === ballY) {
             out += 'O'; // Ball
           } else if (x === 0 || x === width - 1) {
@@ -166,37 +192,62 @@ program
       // Ball movement
       ballX += ballVX;
       ballY += ballVY;
-      // Bot AI: move paddle towards ball
-      if (ballVY > 0 && botPaddleY + paddleHeight / 2 < ballY && botPaddleY < height - paddleHeight) botPaddleY++;
-      if (ballVY < 0 && botPaddleY + paddleHeight / 2 > ballY && botPaddleY > 0) botPaddleY--;
+      // Bot AI: move paddle towards ball, with mistakes
+      let botTarget = ballY - Math.floor(paddleHeight / 2);
+      let move = Math.sign(botTarget - botPaddleY) * botSpeed;
+      let shouldMove = true;
+      if (botMistakeChance > 0 && Math.random() < botMistakeChance) {
+        shouldMove = false; // bot makes a mistake
+      }
+      if (shouldMove && Math.abs(move) > 0 && Math.abs(botTarget - botPaddleY) >= 1) {
+        botPaddleY += move;
+        botPaddleY = Math.max(0, Math.min(height - paddleHeight, Math.round(botPaddleY)));
+      }
       // Bounce off top/bottom
       if (ballY <= 0 || ballY >= height - 1) ballVY *= -1;
       // Bounce off player paddle
       if (ballX === 2 && ballY >= paddleY && ballY < paddleY + paddleHeight) {
         ballVX *= -1;
+        // Always bounce at least 15 degrees from horizontal
+        let minAngle = Math.PI / 12; // 15 degrees
+        let angle = (Math.random() - 0.5) * (Math.PI / 2 - 2 * minAngle) + (ballY - (paddleY + paddleHeight / 2)) * 0.2;
+        angle = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, angle)); // Clamp to ±45°
+        angle += (angle > 0 ? 1 : -1) * minAngle; // Nudge away from horizontal
+        let speed = 1 + Math.random();
+        ballVX = Math.sign(ballVX) * Math.max(1, Math.round(Math.abs(Math.cos(angle) * speed)));
+        ballVY = Math.sign(ballVY || 1) * Math.max(1, Math.round(Math.abs(Math.sin(angle) * speed)));
       }
       // Bounce off bot paddle
       if (ballX === width - 3 && ballY >= botPaddleY && ballY < botPaddleY + paddleHeight) {
         ballVX *= -1;
+        let minAngle = Math.PI / 12;
+        let angle = (Math.random() - 0.5) * (Math.PI / 2 - 2 * minAngle) + (ballY - (botPaddleY + paddleHeight / 2)) * 0.2;
+        angle = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, angle));
+        angle += (angle > 0 ? 1 : -1) * minAngle;
+        let speed = 1 + Math.random();
+        ballVX = Math.sign(ballVX) * Math.max(1, Math.round(Math.abs(Math.cos(angle) * speed)));
+        ballVY = Math.sign(ballVY || 1) * Math.max(1, Math.round(Math.abs(Math.sin(angle) * speed)));
       }
       // Player scores
-      if (ballX === width - 1) {
+      if (ballX >= width - 1) {
         playerScore++;
         ballX = Math.floor(width / 2);
         ballY = Math.floor(height / 2);
         ballVX = -1;
-        ballVY = Math.random() > 0.5 ? 1 : -1;
+        ballVY = (Math.random() > 0.5 ? 1 : -1);
+        return; // Prevent further update this frame
       }
       // Bot scores
-      if (ballX === 0) {
+      if (ballX <= 0) {
         botScore++;
         ballX = Math.floor(width / 2);
         ballY = Math.floor(height / 2);
         ballVX = 1;
-        ballVY = Math.random() > 0.5 ? 1 : -1;
+        ballVY = (Math.random() > 0.5 ? 1 : -1);
+        return; // Prevent further update this frame
       }
-      // End game if either reaches 11
-      if (playerScore >= 11 || botScore >= 11) {
+      // End game if either reaches 5
+      if (playerScore >= 5 || botScore >= 5) {
         running = false;
       }
     }
@@ -216,16 +267,16 @@ program
       if (!running) {
         process.stdin.setRawMode(false);
         rl.close();
-        if (playerScore >= 11) {
+        if (playerScore >= 5) {
           process.stdout.write('You win! Final Score: ' + playerScore + ' - ' + botScore + '\n');
-        } else if (botScore >= 11) {
+        } else if (botScore >= 5) {
           process.stdout.write('Bot wins! Final Score: ' + playerScore + ' - ' + botScore + '\n');
         } else {
           process.stdout.write('Game Over! Final Score: ' + playerScore + ' - ' + botScore + '\n');
         }
         // Ask if user wants to clear the terminal
         const promptRl = readline.createInterface({ input: process.stdin, output: process.stdout });
-        promptRl.question('Do you want to clear the terminal? (y/N): ', (answer) => {
+        promptRl.question('\nDo you want to clear the terminal? (y/N): ', (answer) => {
           if (answer.trim().toLowerCase() === 'y' || answer.trim().toLowerCase() === 'yes') {
             process.stdout.write('\x1Bc');
           }
@@ -235,7 +286,7 @@ program
       }
       update();
       draw();
-      setTimeout(gameLoop, 80);
+      setTimeout(gameLoop, ballDelay);
     }
     draw();
     gameLoop();
