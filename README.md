@@ -32,7 +32,7 @@ curl -fsSL https://raw.githubusercontent.com/genZrizzCode/CLImmander/main/run.sh
 curl -fsSL https://raw.githubusercontent.com/genZrizzCode/CLImmander/main/run.sh | bash -s -- weather
 ```
 
-> ***WARNING:**
+> **WARNING:**
 > If you do this method, pressing `^C` will end the whole process, and interactive commands (`bash -s -- ping <difficulty>`) will not work.
 
 ## Usage
