@@ -5,7 +5,7 @@ A powerful, modern CLI toolkit built with Node.js, math.js and commander.js. Inc
 ## Installation
 
 ```sh
-npm i climmander
+npm install -g climmander
 ```
 
 Or use directly with npx:
@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/genZrizzCode/CLImmander/main/run.sh
 ```
 
 > **WARNING:**
-> If you do this method, pressing `^C` will end the whole process, and interactive commands (`bash -s -- ping <difficulty>`) will not work.
+> If you do this method, pressing `^C` will end the whole process, and interactive commands (`bash -s -- pong <difficulty>`) will not work.
 
 ## Usage
 
